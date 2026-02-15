@@ -25,10 +25,10 @@ func NewInvokerService(pp *ProtoParserService) *InvokerService {
 
 type InvocationRequest struct {
 	ProtoPath   string            `json:"protoPath"`
-	ServiceName string            `json:"serviceName"` // Full name: package.Service
-	MethodName  string            `json:"methodName"`
+	ServiceName string            `json:"service"` // Full name: package.Service
+	MethodName  string            `json:"method"`
 	Host        string            `json:"host"`
-	InputData   json.RawMessage   `json:"inputData"` // JSON object
+	InputData   string            `json:"data"` // JSON string
 	Metadata    map[string]string `json:"metadata"`
 	Timeout     int               `json:"timeout"` // Seconds
 }
@@ -36,10 +36,14 @@ type InvocationRequest struct {
 type InvocationResponse struct {
 	Status     string            `json:"status"` // OK, ERROR
 	StatusCode string            `json:"statusCode"`
+	HttpCode   int               `json:"httpCode"` // HTTP Status Code (200, 400, 500 etc)
+	GrpcCode   int               `json:"grpcCode"` // gRPC Status Code (0=OK, etc)
 	Body       json.RawMessage   `json:"body"`
 	Headers    map[string]string `json:"headers"`
 	Trailers   map[string]string `json:"trailers"`
 	TimeMs     int64             `json:"timeMs"`
+	TimeNs     int64             `json:"timeNs"`
+	DataSize   int               `json:"dataSize"`
 	Error      string            `json:"error,omitempty"`
 }
 
@@ -56,7 +60,7 @@ func (s *InvokerService) Invoke(ctx context.Context, req InvocationRequest) (*In
 
 	// 2. Create Request Message
 	msg := dynamic.NewMessage(md.GetInputType())
-	if err := msg.UnmarshalJSON(req.InputData); err != nil {
+	if err := msg.UnmarshalJSON([]byte(req.InputData)); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal input data: %w", err)
 	}
 
@@ -96,6 +100,7 @@ func (s *InvokerService) Invoke(ctx context.Context, req InvocationRequest) (*In
 	// 5. Process Response
 	res := &InvocationResponse{
 		TimeMs:   duration.Milliseconds(),
+		TimeNs:   duration.Nanoseconds(),
 		Headers:  convertMetadata(header),
 		Trailers: convertMetadata(trailer),
 	}
@@ -104,15 +109,25 @@ func (s *InvokerService) Invoke(ctx context.Context, req InvocationRequest) (*In
 		st, ok := status.FromError(err)
 		if ok {
 			res.StatusCode = st.Code().String()
+			res.GrpcCode = int(st.Code())
+			res.HttpCode = 400 // Default bad request for specific grpc errors unless specific mapping
+			// Map gRPC code to HTTP
+			// internal/server/server.go handles errors but here we want to return 200 OK with error details in JSON?
+			// The caller (InvokeHandler) returns 200 with this object. So HttpCode is informative.
 			res.Status = "ERROR"
 			res.Error = st.Message()
 		} else {
+			res.StatusCode = "UNKNOWN"
+			res.GrpcCode = 2 // Unknown
+			res.HttpCode = 500
 			res.Status = "ERROR"
 			res.Error = err.Error()
 		}
 	} else {
 		res.Status = "OK"
 		res.StatusCode = "OK"
+		res.GrpcCode = 0 // OK
+		res.HttpCode = 200
 
 		// Convert response message to JSON
 		// We use standard json marshaler or dynamic message marshaler
@@ -122,6 +137,7 @@ func (s *InvokerService) Invoke(ctx context.Context, req InvocationRequest) (*In
 			res.Body = json.RawMessage(fmt.Sprintf(`{"error": "failed to marshal response %v"}`, err))
 		} else {
 			res.Body = b
+			res.DataSize = len(b)
 		}
 	}
 

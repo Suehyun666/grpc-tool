@@ -61,6 +61,7 @@ func (h *ProtoHandler) Upload(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, echo.Map{
 		"file":     filename,
+		"path":     dstPath,
 		"services": services,
 	})
 }

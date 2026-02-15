@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"grpc-tool/internal/service"
@@ -20,8 +21,10 @@ func (h *InvokeHandler) Invoke(c echo.Context) error {
 	}
 
 	if req.ProtoPath == "" || req.ServiceName == "" || req.MethodName == "" || req.Host == "" {
+		fmt.Printf("Invalid Request: %+v\n", req)
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "missing required fields"})
 	}
+	fmt.Printf("Invoke Request: %+v\n", req)
 
 	resp, err := h.Service.Invoke(context.Background(), req)
 	if err != nil {
