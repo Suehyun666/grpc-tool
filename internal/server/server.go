@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"grpc-tool/internal/handler"
+	"grpc-tool/internal/service"
 	"grpc-tool/internal/store"
 
 	"github.com/labstack/echo/v4"
@@ -38,6 +39,16 @@ func New(db *gorm.DB) *echo.Echo {
 		TestStore:    testStore,
 	}
 
+	// Services
+	protoService := service.NewProtoParserService()
+	protoHandler := &handler.ProtoHandler{Service: protoService}
+
+	invokerService := service.NewInvokerService(protoService)
+	invokeHandler := &handler.InvokeHandler{Service: invokerService}
+
+	loadTesterService := service.NewLoadTesterService()
+	loadTestHandler := &handler.LoadTestHandler{Service: loadTesterService}
+
 	// Routes
 	api := e.Group("/api")
 
@@ -68,6 +79,15 @@ func New(db *gorm.DB) *echo.Echo {
 
 	// Tree
 	api.GET("/projects/:id/tree", trh.GetTree)
+
+	// Protos
+	api.POST("/protos/upload", protoHandler.Upload)
+
+	// Invoke
+	api.POST("/invoke", invokeHandler.Invoke)
+
+	// Load Test
+	api.POST("/load-test", loadTestHandler.RunLoadTest)
 
 	return e
 }

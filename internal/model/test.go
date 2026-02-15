@@ -16,6 +16,17 @@ type TestConfig struct {
 	Metadata  map[string]string `json:"metadata"`
 	Insecure  bool              `json:"insecure"`
 	Timeout   int               `json:"timeout"`
+
+	// Load Testing Params
+	LoadSchedule       string `json:"loadSchedule"`       // "constant", "step", "linear"
+	RPS                int    `json:"rps"`                // for constant
+	TotalRequests      int    `json:"totalRequests"`      // -n
+	Duration           string `json:"duration"`           // -z
+	Concurrency        int    `json:"concurrency"`        // -c
+	ConcurrentSchedule string `json:"concurrentSchedule"` // "constant", "step", "linear"
+	Step               int    `json:"step"`               // step load
+	StepDuration       string `json:"stepDuration"`       // step duration
+	MaxDuration        string `json:"maxDuration"`        // max duration
 }
 
 // Value implements driver.Valuer for GORM JSON serialization.
