@@ -30,6 +30,11 @@ export function HistogramChart({ histogram, totalCount }: { histogram: LoadTestR
         indexAxis: 'y' as const,
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+            mode: 'nearest' as const,
+            axis: 'y' as const,
+            intersect: true,
+        },
         plugins: {
             legend: { display: false },
             tooltip: {

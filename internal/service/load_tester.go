@@ -79,8 +79,11 @@ func (s *LoadTesterService) buildOptions(config model.TestConfig) ([]runner.Opti
 	}
 
 	// Flat options — apply each non-zero/non-empty field independently
+	// For step/line schedules, explicitly set total=0 to remove the default 200 limit
 	if config.TotalRequests > 0 {
 		opts = append(opts, runner.WithTotalRequests(uint(config.TotalRequests)))
+	} else if config.LoadSchedule == "step" || config.LoadSchedule == "line" {
+		opts = append(opts, runner.WithTotalRequests(0))
 	}
 	if config.RPS > 0 {
 		opts = append(opts, runner.WithRPS(uint(config.RPS)))
