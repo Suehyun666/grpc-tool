@@ -17,16 +17,28 @@ type TestConfig struct {
 	Insecure  bool              `json:"insecure"`
 	Timeout   int               `json:"timeout"`
 
-	// Load Testing Params
-	LoadSchedule       string `json:"loadSchedule"`       // "constant", "step", "linear"
-	RPS                int    `json:"rps"`                // for constant
-	TotalRequests      int    `json:"totalRequests"`      // -n
-	Duration           string `json:"duration"`           // -z
-	Concurrency        int    `json:"concurrency"`        // -c
-	ConcurrentSchedule string `json:"concurrentSchedule"` // "constant", "step", "linear"
-	Step               int    `json:"step"`               // step load
-	StepDuration       string `json:"stepDuration"`       // step duration
-	MaxDuration        string `json:"maxDuration"`        // max duration
+	// Load Test Basic
+	RPS           int    `json:"rps"`
+	TotalRequests int    `json:"totalRequests"`
+	Duration      string `json:"duration"`
+	Concurrency   int    `json:"concurrency"`
+
+	// Load Schedule
+	LoadSchedule     string `json:"loadSchedule"` // "const", "step", "line"
+	LoadStart        int    `json:"loadStart"`
+	LoadEnd          int    `json:"loadEnd"`
+	LoadStep         int    `json:"loadStep"`
+	LoadStepDuration string `json:"loadStepDuration"`
+
+	// Advanced
+	Connections             int    `json:"connections"`
+	DialTimeout             int    `json:"dialTimeout"`
+	CPUs                    int    `json:"cpus"`
+	ConcurrencySchedule     string `json:"concurrencySchedule"`
+	ConcurrencyStart        int    `json:"concurrencyStart"`
+	ConcurrencyEnd          int    `json:"concurrencyEnd"`
+	ConcurrencyStep         int    `json:"concurrencyStep"`
+	ConcurrencyStepDuration string `json:"concurrencyStepDuration"`
 }
 
 // Value implements driver.Valuer for GORM JSON serialization.

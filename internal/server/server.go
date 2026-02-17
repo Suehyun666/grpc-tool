@@ -43,19 +43,11 @@ func New(db *gorm.DB) *echo.Echo {
 	protoService := service.NewProtoParserService()
 	protoHandler := &handler.ProtoHandler{Service: protoService}
 
-	invokerService := service.NewInvokerService(protoService)
-	invokeHandler := &handler.InvokeHandler{Service: invokerService}
-
 	loadTesterService := service.NewLoadTesterService()
 	loadTestHandler := &handler.LoadTestHandler{Service: loadTesterService}
 
 	// Routes
 	api := e.Group("/api")
-
-	// Health
-	api.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, echo.Map{"status": "ok"})
-	})
 
 	// Projects
 	api.POST("/projects", ph.Create)
@@ -82,12 +74,11 @@ func New(db *gorm.DB) *echo.Echo {
 
 	// Protos
 	api.POST("/protos/upload", protoHandler.Upload)
+	api.GET("/protos/services", protoHandler.ListServices)
+	api.GET("/protos/service", protoHandler.GetService)
 
-	// Invoke
-	api.POST("/invoke", invokeHandler.Invoke)
-
-	// Load Test
-	api.POST("/load-test", loadTestHandler.RunLoadTest)
+	// Run Test
+	api.POST("/run", loadTestHandler.RunLoadTest)
 
 	return e
 }

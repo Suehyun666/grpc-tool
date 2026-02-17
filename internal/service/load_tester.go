@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"grpc-tool/internal/model"
@@ -18,13 +19,47 @@ func NewLoadTesterService() *LoadTesterService {
 }
 
 func (s *LoadTesterService) RunLoadTest(ctx context.Context, config model.TestConfig) (*runner.Report, error) {
-	// Build runner options
+	opts, err := s.buildOptions(config)
+	if err != nil {
+		return nil, err
+	}
+
+	call := fmt.Sprintf("%s.%s", config.Service, config.Method)
+
+	report, err := runner.Run(call, config.Host, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("load test failed: %w", err)
+	}
+
+	return report, nil
+}
+
+// parseDuration parses a duration string. If the string is a plain number
+// (e.g. "10"), it treats it as seconds. Otherwise delegates to time.ParseDuration.
+func parseDuration(s string) (time.Duration, error) {
+	if s == "" {
+		return 0, fmt.Errorf("empty duration")
+	}
+	// Try standard parse first
+	d, err := time.ParseDuration(s)
+	if err == nil {
+		return d, nil
+	}
+	// If it's a plain number, treat as seconds
+	if n, err2 := strconv.ParseFloat(s, 64); err2 == nil {
+		return time.Duration(n * float64(time.Second)), nil
+	}
+	return 0, err
+}
+
+func (s *LoadTesterService) buildOptions(config model.TestConfig) ([]runner.Option, error) {
 	var opts []runner.Option
 
-	// Common options
+	// Proto & connection
 	opts = append(opts, runner.WithProtoFile(config.ProtoPath, nil))
 	opts = append(opts, runner.WithInsecure(config.Insecure))
 
+	// Data
 	if config.Data != "" {
 		var data interface{}
 		if err := json.Unmarshal([]byte(config.Data), &data); err != nil {
@@ -33,56 +68,78 @@ func (s *LoadTesterService) RunLoadTest(ctx context.Context, config model.TestCo
 		opts = append(opts, runner.WithData(data))
 	}
 
+	// Metadata
 	if config.Metadata != nil {
 		opts = append(opts, runner.WithMetadata(config.Metadata))
 	}
 
-	opts = append(opts, runner.WithTimeout(time.Duration(config.Timeout)*time.Second))
-
-	// Load Schedule
-	if config.LoadSchedule == "step" {
-		opts = append(opts, runner.WithLoadSchedule("step"))
-		opts = append(opts, runner.WithLoadStep(config.Step))
-		stepDur, _ := time.ParseDuration(config.StepDuration)
-		opts = append(opts, runner.WithLoadStepDuration(stepDur))
-		// maxDur, _ := time.ParseDuration(config.MaxDuration)
-		// opts = append(opts, runner.WithLoadMaxDuration(maxDur)) // Undefined
-	} else if config.LoadSchedule == "linear" {
-		opts = append(opts, runner.WithLoadSchedule("line"))
-		stepDur, _ := time.ParseDuration(config.StepDuration)
-		opts = append(opts, runner.WithLoadStepDuration(stepDur))
-		// maxDur, _ := time.ParseDuration(config.MaxDuration)
-		// opts = append(opts, runner.WithLoadMaxDuration(maxDur)) // Undefined
-	} else {
-		// Constant (Default)
-		opts = append(opts, runner.WithRPS(uint(config.RPS)))
+	// Timeout
+	if config.Timeout > 0 {
+		opts = append(opts, runner.WithTimeout(time.Duration(config.Timeout)*time.Second))
 	}
 
-	// Concurrency Schedule
-	// Note: ghz runner handles concurrency logic slightly differently depending on schedule
-	// For now, we assume basic concurrency
-	if config.Concurrency > 0 {
-		opts = append(opts, runner.WithConcurrency(uint(config.Concurrency)))
-	}
-
-	// Duration or Total Requests
+	// Flat options — apply each non-zero/non-empty field independently
 	if config.TotalRequests > 0 {
 		opts = append(opts, runner.WithTotalRequests(uint(config.TotalRequests)))
-	} else if config.Duration != "" {
-		dur, err := time.ParseDuration(config.Duration)
-		if err == nil {
+	}
+	if config.RPS > 0 {
+		opts = append(opts, runner.WithRPS(uint(config.RPS)))
+	}
+	if config.Duration != "" {
+		if dur, err := parseDuration(config.Duration); err == nil {
 			opts = append(opts, runner.WithRunDuration(dur))
 		}
 	}
-
-	// Target
-	call := fmt.Sprintf("%s.%s", config.Service, config.Method)
-
-	// Create report
-	report, err := runner.Run(call, config.Host, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("load test failed: %w", err)
+	if config.Concurrency > 0 {
+		opts = append(opts, runner.WithConcurrency(uint(config.Concurrency)))
+	}
+	if config.LoadSchedule != "" {
+		opts = append(opts, runner.WithLoadSchedule(config.LoadSchedule))
+	}
+	if config.LoadStart > 0 {
+		opts = append(opts, runner.WithLoadStart(uint(config.LoadStart)))
+	}
+	if config.LoadEnd > 0 {
+		opts = append(opts, runner.WithLoadEnd(uint(config.LoadEnd)))
+	}
+	if config.LoadStep > 0 {
+		opts = append(opts, runner.WithLoadStep(config.LoadStep))
+	}
+	if config.LoadStepDuration != "" {
+		if d, err := parseDuration(config.LoadStepDuration); err == nil {
+			opts = append(opts, runner.WithLoadStepDuration(d))
+		}
 	}
 
-	return report, nil
+	// Advanced options
+	if config.Connections > 0 {
+		opts = append(opts, runner.WithConnections(uint(config.Connections)))
+	}
+	if config.DialTimeout > 0 {
+		opts = append(opts, runner.WithDialTimeout(time.Duration(config.DialTimeout)*time.Second))
+	}
+	if config.CPUs > 0 {
+		opts = append(opts, runner.WithCPUs(uint(config.CPUs)))
+	}
+
+	// Concurrency schedule
+	if config.ConcurrencySchedule != "" {
+		opts = append(opts, runner.WithConcurrencySchedule(config.ConcurrencySchedule))
+	}
+	if config.ConcurrencyStart > 0 {
+		opts = append(opts, runner.WithConcurrencyStart(uint(config.ConcurrencyStart)))
+	}
+	if config.ConcurrencyEnd > 0 {
+		opts = append(opts, runner.WithConcurrencyEnd(uint(config.ConcurrencyEnd)))
+	}
+	if config.ConcurrencyStep > 0 {
+		opts = append(opts, runner.WithConcurrencyStep(config.ConcurrencyStep))
+	}
+	if config.ConcurrencyStepDuration != "" {
+		if d, err := parseDuration(config.ConcurrencyStepDuration); err == nil {
+			opts = append(opts, runner.WithConcurrencyStepDuration(d))
+		}
+	}
+
+	return opts, nil
 }

@@ -54,8 +54,7 @@ func (h *ProtoHandler) Upload(c echo.Context) error {
 	// TODO: Handle imports - for now assume no external imports or standard ones
 	services, err := h.Service.ParseProto(dstPath, []string{uploadDir})
 	if err != nil {
-		// Clean up on error (optional)
-		// os.Remove(dstPath)
+		os.Remove(dstPath)
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
 
@@ -64,4 +63,45 @@ func (h *ProtoHandler) Upload(c echo.Context) error {
 		"path":     dstPath,
 		"services": services,
 	})
+}
+
+func (h *ProtoHandler) ListServices(c echo.Context) error {
+	path := c.QueryParam("path")
+	if path == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "path is required"})
+	}
+
+	// We assume imports are relative to the file or standard
+	services, err := h.Service.ParseProto(path, []string{})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	serviceNames := make([]string, 0, len(services))
+	for _, s := range services {
+		serviceNames = append(serviceNames, s.Name)
+	}
+
+	return c.JSON(http.StatusOK, serviceNames)
+}
+
+func (h *ProtoHandler) GetService(c echo.Context) error {
+	path := c.QueryParam("path")
+	serviceName := c.QueryParam("service")
+	if path == "" || serviceName == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "path and service are required"})
+	}
+
+	services, err := h.Service.ParseProto(path, []string{})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	for _, s := range services {
+		if s.Name == serviceName {
+			return c.JSON(http.StatusOK, s)
+		}
+	}
+
+	return c.JSON(http.StatusNotFound, echo.Map{"error": "service not found"})
 }
