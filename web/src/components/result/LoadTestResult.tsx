@@ -2,6 +2,7 @@ import { cn } from '../../lib/utils'
 import type { LoadTestReport } from '../../types/api'
 import { FormattedOptions } from '../options/FormattedOptions'
 import { HistogramChart } from './HistogramChart'
+import { ReportChart } from './ReportChart'
 import { Download } from 'lucide-react'
 
 function formatNano(ns: number): string {
@@ -96,6 +97,12 @@ export function LoadTestResult({ report }: { report: LoadTestReport }) {
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Timeline */}
+            <div>
+                <h4 className="text-sm font-bold text-zinc-300 mb-2">Timeline</h4>
+                <ReportChart report={report} />
             </div>
 
             {/* Histogram */}
