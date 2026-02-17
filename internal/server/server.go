@@ -80,5 +80,11 @@ func New(db *gorm.DB) *echo.Echo {
 	// Run Test
 	api.POST("/run", loadTestHandler.RunLoadTest)
 
+	// Static Resources
+	e.Static("/assets", "web/dist/assets")
+	e.GET("/*", func(c echo.Context) error {
+		return c.File("web/dist/index.html")
+	})
+
 	return e
 }
