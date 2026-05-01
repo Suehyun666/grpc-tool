@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { api } from '../lib/api'
 import type { FieldDesc, LoadTestReport, ServiceDesc, TestConfig } from '../types'
+import type { InvokeResult } from '../types/api'
 import { generateTemplate } from '../lib/protoUtils'
 
 const DEFAULT_CONFIG_VAL: TestConfig = {
@@ -34,7 +35,9 @@ const DEFAULT_CONFIG_VAL: TestConfig = {
 export function useRequestLogic(testId?: number | null) {
     const [config, setConfig] = useState<TestConfig>(DEFAULT_CONFIG_VAL)
     const [report, setReport] = useState<LoadTestReport | null>(null)
+    const [invokeResult, setInvokeResult] = useState<InvokeResult | null>(null)
     const [loading, setLoading] = useState(false)
+    const [invokeLoading, setInvokeLoading] = useState(false)
 
     // Store full service definitions
     const [serviceDefs, setServiceDefs] = useState<ServiceDesc[]>([])
@@ -46,6 +49,7 @@ export function useRequestLogic(testId?: number | null) {
     useEffect(() => {
         setConfig(DEFAULT_CONFIG_VAL)
         setReport(null)
+        setInvokeResult(null)
         setServices([])
         setMethods([])
         setServiceDefs([])
@@ -162,11 +166,27 @@ export function useRequestLogic(testId?: number | null) {
         }
     }
 
+    const handleInvoke = async () => {
+        if (!config) return
+        setInvokeLoading(true)
+        setInvokeResult(null)
+        try {
+            const res = await api.invoke(config)
+            setInvokeResult(res)
+        } catch (err: any) {
+            setInvokeResult({ error: err?.message ?? 'Invoke failed' })
+        } finally {
+            setInvokeLoading(false)
+        }
+    }
+
     return {
         config,
         setConfig,
         report,
+        invokeResult,
         loading,
+        invokeLoading,
         services,
         methods,
         serviceDefs,
@@ -175,6 +195,7 @@ export function useRequestLogic(testId?: number | null) {
         handleProtoUpload,
         handleServiceChange,
         handleMethodChange,
-        handleSend
+        handleSend,
+        handleInvoke
     }
 }

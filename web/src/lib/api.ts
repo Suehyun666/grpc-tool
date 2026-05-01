@@ -2,7 +2,7 @@ import type {
     Project, Folder, Test, TestConfig, TreeItem
 } from '../types/models'
 import type {
-    LoadTestReport, ProtoUploadResponse
+    LoadTestReport, ProtoUploadResponse, InvokeResult
 } from '../types/api'
 
 const API_BASE = '/api'
@@ -85,9 +85,12 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             name,
-            service: "",
-            method: "",
-            data: "{}"
+            config: {
+                service: "",
+                method: "",
+                data: "{}",
+                insecure: true
+            }
         })
     }),
     updateTest: (id: number, name: string, config: TestConfig) => request<Test>(`/tests/${id}`, {
@@ -107,6 +110,12 @@ export const api = {
 
     // Run Test
     runLoadTest: (config: TestConfig) => request<LoadTestReport>('/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+    }),
+
+    invoke: (config: TestConfig) => request<InvokeResult>('/invoke', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)

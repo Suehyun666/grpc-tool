@@ -58,6 +58,11 @@ export interface MethodDesc {
     inputSchema: any
 }
 
+export interface InvokeResult {
+    response?: any
+    error?: string
+}
+
 export interface FieldDesc {
     name: string
     type: string

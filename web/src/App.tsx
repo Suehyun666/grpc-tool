@@ -4,7 +4,7 @@ import { RequestPanel } from './components/ui/RequestPanel'
 import { ResponsePanel } from './components/ui/ResponsePanel'
 import { api } from './lib/api'
 import type { Project } from './types/models'
-import type { LoadTestReport } from './types/api'
+import type { InvokeResult, LoadTestReport } from './types/api'
 
 
 function App() {
@@ -14,14 +14,16 @@ function App() {
   const [sidebarWidth, setSidebarWidth] = useState(260)
   const [middleWidth, setMiddleWidth] = useState<number | null>(null)
   const [report, setReport] = useState<LoadTestReport | null>(null)
+  const [invokeResult, setInvokeResult] = useState<InvokeResult | null>(null)
 
   useEffect(() => {
     loadProjects()
   }, [])
 
-  // Reset report when test changes
+  // Reset results when test changes
   useEffect(() => {
     setReport(null)
+    setInvokeResult(null)
   }, [selectedTestId])
 
   const loadProjects = async () => {
@@ -119,6 +121,7 @@ function App() {
             <RequestPanel
               testId={selectedTestId}
               onReport={setReport}
+              onInvokeResult={setInvokeResult}
             />
             {/* Resizer */}
             <div
@@ -129,7 +132,7 @@ function App() {
 
           {/* Right Panel - Response */}
           <div className="flex-1 flex flex-col min-w-[300px] bg-zinc-950">
-            <ResponsePanel report={report} />
+            <ResponsePanel report={report} invokeResult={invokeResult} />
           </div>
         </>
       ) : (

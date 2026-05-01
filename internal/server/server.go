@@ -46,6 +46,9 @@ func New(db *gorm.DB) *echo.Echo {
 	loadTesterService := service.NewLoadTesterService()
 	loadTestHandler := &handler.LoadTestHandler{Service: loadTesterService}
 
+	invokeService := service.NewInvokeService()
+	invokeHandler := &handler.InvokeHandler{Service: invokeService}
+
 	// Routes
 	api := e.Group("/api")
 
@@ -79,6 +82,9 @@ func New(db *gorm.DB) *echo.Echo {
 
 	// Run Test
 	api.POST("/run", loadTestHandler.RunLoadTest)
+
+	// Invoke (single request)
+	api.POST("/invoke", invokeHandler.Invoke)
 
 	// Static Resources
 	e.Static("/assets", "web/dist/assets")

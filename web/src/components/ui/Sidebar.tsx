@@ -22,14 +22,11 @@ export function Sidebar({ projectId, onSelectTest }: SidebarProps) {
 
     return (
         <aside className="w-full h-full flex flex-col">
-            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+            <div className="p-4 border-b border-zinc-800 flex items-center">
                 <div className="font-bold text-zinc-100 flex items-center gap-2">
                     <Box className="w-5 h-5 text-emerald-500" />
                     <span>Explorer</span>
                 </div>
-                <button onClick={createFolder} className="text-zinc-400 hover:text-zinc-100" title="Create Folder">
-                    <Plus className="w-4 h-4" />
-                </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
@@ -38,6 +35,7 @@ export function Sidebar({ projectId, onSelectTest }: SidebarProps) {
                 ) : tree ? (
                     <TreeNode
                         item={tree}
+                        onCreateFolder={createFolder}
                         onCreateTest={createTest}
                         onSelectTest={onSelectTest}
                         onEdit={editItem}
@@ -51,9 +49,10 @@ export function Sidebar({ projectId, onSelectTest }: SidebarProps) {
     )
 }
 
-function TreeNode({ item, level = 0, onCreateTest, onSelectTest, onEdit, onDelete }: {
+function TreeNode({ item, level = 0, onCreateFolder, onCreateTest, onSelectTest, onEdit, onDelete }: {
     item: TreeItem,
     level?: number,
+    onCreateFolder: () => void,
     onCreateTest: (folderId: number) => void,
     onSelectTest: (id: number) => void,
     onEdit: (item: TreeItem) => void,
@@ -96,6 +95,18 @@ function TreeNode({ item, level = 0, onCreateTest, onSelectTest, onEdit, onDelet
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                    {item.type === 'project' && (
+                        <button
+                            className="text-zinc-500 hover:text-emerald-400"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onCreateFolder()
+                            }}
+                            title="Create Folder"
+                        >
+                            <Plus className="w-3 h-3" />
+                        </button>
+                    )}
                     {item.type === 'folder' && (
                         <button
                             className="text-zinc-500 hover:text-emerald-400"
@@ -135,6 +146,7 @@ function TreeNode({ item, level = 0, onCreateTest, onSelectTest, onEdit, onDelet
                 <div>
                     {item.children.map((child) => (
                         <TreeNode key={child.id} item={child} level={level + 1}
+                            onCreateFolder={onCreateFolder}
                             onCreateTest={onCreateTest}
                             onSelectTest={onSelectTest}
                             onEdit={onEdit}
