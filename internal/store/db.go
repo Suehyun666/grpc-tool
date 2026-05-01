@@ -1,14 +1,23 @@
 package store
 
 import (
-    "grpc-tool/internal/model"
+	"os"
+	"path/filepath"
 
-    "github.com/glebarez/sqlite" 
-    "gorm.io/gorm"
+	"grpc-tool/internal/model"
+
+	"github.com/glebarez/sqlite"
+	"gorm.io/gorm"
 )
 
 func InitDB(dbPath string) (*gorm.DB, error) {
-    db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	if dir := filepath.Dir(dbPath); dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, err
+		}
+	}
+
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
     if err != nil {
         return nil, err
     }
