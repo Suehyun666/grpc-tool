@@ -110,21 +110,21 @@ export function RequestPanel({ testId, onReport, onInvokeResult }: RequestPanelP
                         />
                     </div>
 
-                    {/* Load Options */}
-                    <LoadOptions config={config} onChange={setConfig} />
-
-                    {/* Advanced Options */}
-                    <AdvancedOptions config={config} onChange={setConfig} />
-
                     {/* Request Data - ProtoForm */}
                     <div>
-                        <label className={labelCls}>Request Data</label>
+                        <label className="text-xs font-bold text-zinc-300 block mb-1.5">Request Data</label>
                         <ProtoForm
                             schema={inputSchema}
                             value={config.data}
                             onChange={data => setConfig({ ...config, data })}
                         />
                     </div>
+
+                    {/* Load Options */}
+                    <LoadOptions config={config} onChange={setConfig} />
+
+                    {/* Advanced Options */}
+                    <AdvancedOptions config={config} onChange={setConfig} />
                 </div>
             </div>
 
