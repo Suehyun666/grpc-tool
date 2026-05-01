@@ -1,33 +1,34 @@
 import { useEffect } from 'react'
-import { Play, Save } from 'lucide-react'
+import { Play, Save, Send } from 'lucide-react'
 import { useRequestLogic } from '../../hooks/useRequestLogic'
 import { LoadOptions } from '../options/LoadOptions'
 import { AdvancedOptions } from '../options/AdvancedOptions'
 import { ProtoForm } from './ProtoForm'
-import type { LoadTestReport } from '../../types/api'
+import type { InvokeResult, LoadTestReport } from '../../types/api'
 
 interface RequestPanelProps {
     testId?: number | null
     onReport?: (report: LoadTestReport | null) => void
+    onInvokeResult?: (result: InvokeResult | null) => void
 }
 
-export function RequestPanel({ testId, onReport }: RequestPanelProps) {
+export function RequestPanel({ testId, onReport, onInvokeResult }: RequestPanelProps) {
     const {
         config, setConfig,
-        report, loading,
+        report, invokeResult,
+        loading, invokeLoading,
         services, methods,
         inputSchema,
         protoFile,
         handleProtoUpload,
         handleServiceChange,
         handleMethodChange,
-        handleSend
+        handleSend,
+        handleInvoke
     } = useRequestLogic(testId)
 
-    // Lift report state up to App
-    useEffect(() => {
-        onReport?.(report)
-    }, [report])
+    useEffect(() => { onReport?.(report) }, [report])
+    useEffect(() => { onInvokeResult?.(invokeResult) }, [invokeResult])
 
     const labelCls = "text-xs font-bold text-zinc-500 block mb-1.5"
     const inputCls = "bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-sm text-zinc-200 w-full focus:outline-none focus:border-emerald-500/50"
@@ -109,31 +110,51 @@ export function RequestPanel({ testId, onReport }: RequestPanelProps) {
                         />
                     </div>
 
-                    {/* Load Options */}
-                    <LoadOptions config={config} onChange={setConfig} />
-
-                    {/* Advanced Options */}
-                    <AdvancedOptions config={config} onChange={setConfig} />
-
                     {/* Request Data - ProtoForm */}
                     <div>
-                        <label className={labelCls}>Request Data</label>
+                        <label className="text-xs font-bold text-zinc-300 block mb-1.5">Request Data</label>
                         <ProtoForm
                             schema={inputSchema}
                             value={config.data}
                             onChange={data => setConfig({ ...config, data })}
                         />
                     </div>
+
+                    {/* Load Options */}
+                    <LoadOptions config={config} onChange={setConfig} />
+
+                    {/* Advanced Options */}
+                    <AdvancedOptions config={config} onChange={setConfig} />
                 </div>
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-zinc-800 shrink-0 bg-zinc-950/95 backdrop-blur">
+            <div className="p-3 border-t border-zinc-800 shrink-0 bg-zinc-950/95 backdrop-blur flex gap-2">
+                <button
+                    onClick={handleInvoke}
+                    disabled={invokeLoading || loading || !config.protoPath}
+                    className={`
+                        flex-1 flex items-center justify-center gap-2 py-2 rounded font-bold transition-all text-sm
+                        ${invokeLoading
+                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
+                        }
+                    `}
+                >
+                    {invokeLoading ? (
+                        <span className="animate-pulse">Sending...</span>
+                    ) : (
+                        <>
+                            <Send className="w-3.5 h-3.5" />
+                            Send
+                        </>
+                    )}
+                </button>
                 <button
                     onClick={handleSend}
-                    disabled={loading || !config.protoPath}
+                    disabled={loading || invokeLoading || !config.protoPath}
                     className={`
-                        w-full flex items-center justify-center gap-2 py-2 rounded font-bold transition-all text-sm
+                        flex-1 flex items-center justify-center gap-2 py-2 rounded font-bold transition-all text-sm
                         ${loading
                             ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                             : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20"
